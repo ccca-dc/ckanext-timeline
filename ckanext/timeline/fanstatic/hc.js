@@ -82,7 +82,7 @@ $(function () {
     /** Create the graphs before showing the modal */
     $('#timelineModal').on('show', function () {
         temp_points = shallow_copy(points);
-
+        
         !$('#big-chart').highcharts() && $('#big-chart').highcharts({
             chart: {
                 type: 'line',

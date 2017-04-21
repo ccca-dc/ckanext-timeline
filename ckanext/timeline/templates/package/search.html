@@ -12,10 +12,11 @@
   <section class="module module-narrow module-shallow">
     <h2 class="module-heading">
       <i class="icon-medium icon-time"></i>
-      <a href="#timelineModal" data-toggle="modal">{{ _('Filter by time') }}</a>
+      <a href="#timelineModal" data-toggle="modal">{{ _('Filter by timeline') }}</a>
       <a href="{{ h.remove_url_param(['ext_timeline_start', 'ext_timeline_end']) }}" class="action">{{ _('Clear') }}</a>
     </h2>
     <div class="module-content input-prepend" id="timeline">
+
       <div class="input-prepend">
           <span class="add-on">{{ _('Start') }}:</span>
           <input type="number" class="span2" id="start" data-toggle="tooltip" data-placement="top" data-animation="false"/>
@@ -34,9 +35,12 @@
           <input type="text" class="span2" id="timeline-fq" value="{{ c.timeline_fq }}"/>
       </div>
     </div>
+
+    <br>Timeline for </i><i class="icon-search">{{_(' search')}}</i>  (above)<br>
+
     <div id="timelineModal" class="modal hide fade" data-backdrop="static" data-keyboard="false" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" style="width:80%; margin-left:-40%">
         <div class="modal-header">
-            <h3 id="myModalLabel">{{ _('Filter by time') }}</h3>
+            <h3 id="myModalLabel">{{ _('Filter by timeline') }}</h3>
         </div>
         <div class="modal-body" style="max-height:80%">
             <div id="big-chart" style="width:98%; height:400px; max-height:40%"></div>

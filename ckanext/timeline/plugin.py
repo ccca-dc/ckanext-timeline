@@ -7,6 +7,8 @@
 from __future__ import absolute_import, with_statement, print_function, generators, nested_scopes, division
 # from __future__ import unicode_literals  # Causes template error
 
+import datetime # Anja
+from datetime import datetime
 import logging
 import threading
 import multiprocessing
@@ -21,11 +23,16 @@ import ckan.plugins.toolkit as toolkit
 from ckan.common import _, c
 
 log = logging.getLogger(__name__)
-
-START_FIELD = 'extras_TempCoverageBegin'
-END_FIELD = 'extras_TempCoverageEnd'
+#Anja
+START_FIELD = 'extras_iso_exTempStart'
+END_FIELD = 'extras_iso_exTempEnd'
+START_FIELD_SORT = 'iso_exTempStart'
+END_FIELD_SORT = 'iso_exTempEnd'  # I do not knwo why without extras...
+#Original
+#START_FIELD = 'metadata_modified'
+#END_FIELD = 'metadata_modified'
 QUERY = '{sf}:[* TO {e}] AND {ef}:[{s} TO *]'
-RANGES = 100
+RANGES = 10
 
 
 class TimelinePlugin(plugins.SingletonPlugin):
@@ -108,6 +115,13 @@ def timeline(context, request_data):
 
     start = request_data.get('start')
     end = request_data.get('end')
+
+    log.debug("***************timeline")
+    print (context)
+    print (request_data)
+    print (start)
+    print (end)
+
     method = request_data.get('method', 't')
     q = request_data.get('q', '*:*')
     fq = request_data.get('fq', [])
@@ -121,10 +135,17 @@ def timeline(context, request_data):
         raise ckan.logic.ValidationError({'method': _('Wrong value')})
 
     # Remove existing timeline parameters from 'fq'
-    t_fq = fq.pop([i for i, x in enumerate(fq) if START_FIELD in x or END_FIELD in x or "dataset_type:dataset" in x][0])
+    #print (fq)
+    #print ("Enumerate")
+    #for i,x in enumerate(fq):
+    #    print (i)
+    #    print (x)
+
+    # Anja: dataset_type harvest needed to be added ... not really sure why  we have this type here...
+    t_fq = fq.pop([i for i, x in enumerate(fq) if START_FIELD in x or END_FIELD in x or "dataset_type:dataset" in x or "dataset_type:harvest" in x][0])
     t_fq = re.sub(r' +\+{sf}:\[\* TO (\*|\d+)\] AND {ef}:\[(\*|\d+) TO \*\]'.format(sf=START_FIELD, ef=END_FIELD), '', t_fq)
     fq.append(t_fq)
-
+    print (fq)
     # Handle open/'*' start and end points
     if start == '*':
         try:
@@ -132,7 +153,7 @@ def timeline(context, request_data):
                 start = con.query(q,
                                   fq=fq + ['{f}:[* TO *]'.format(f=START_FIELD)],
                                   fields=['id', '{f}'.format(f=START_FIELD)],
-                                  sort=['{f} asc'.format(f=START_FIELD)],
+                                  sort=['{f} asc'.format(f=START_FIELD_SORT)],
                                   rows=1).results[0][START_FIELD]
         except:
             raise ckan.logic.ValidationError({'start': _('Could not find start value from Solr')})
@@ -142,14 +163,22 @@ def timeline(context, request_data):
                 end = con.query(q,
                                 fq=fq + ['{f}:[* TO *]'.format(f=END_FIELD)],
                                 fields=['id', '{f}'.format(f=END_FIELD)],
-                                sort=['{f} desc'.format(f=END_FIELD)],
+                                sort=['{f} desc'.format(f=END_FIELD_SORT)],
                                 rows=1).results[0][END_FIELD]
         except:
             raise ckan.logic.ValidationError({'end': _('Could not find end value from Solr')})
 
-    # Convert to ints
-    start = int(start)
-    end = int(end)
+    #print ("start: " + start)
+    #print ("end: " + end)
+    # Convert to ints # does not work this way - Anja
+    #start = int(start)
+    #end = int(end)
+    #start= datetime.strptime(start, '%Y-%m-%dT%H:%M:%S')
+    #end= datetime.strptime(end, '%Y-%m-%dT%H:%M:%S')
+    start= datetime.strptime("1900-03-24T13:35:00", '%Y-%m-%dT%H:%M:%S')
+    end= datetime.strptime("3022-03-24T13:35:00", '%Y-%m-%dT%H:%M:%S')
+    start = (start-datetime(1,1,1)).total_seconds()
+    end = (end-datetime(1,1,1)).total_seconds()
 
     # Verify 'end' larger than 'start'
     if end <= start:
