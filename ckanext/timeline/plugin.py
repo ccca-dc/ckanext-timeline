@@ -56,6 +56,8 @@ class TimelinePlugin(plugins.SingletonPlugin):
         Adds start and end point coming from timeline to 'fq'
         '''
         extras = search_params.get('extras')
+        #print ("******************Anja timeline search extras")
+        #print (extras)
         if not extras:
             # There are no extras in the search params, so do nothing.
             return search_params
@@ -73,6 +75,8 @@ class TimelinePlugin(plugins.SingletonPlugin):
 
         # Add a time-range query with the selected start and/or end points into the Solr facet queries.
         fq = search_params.get('fq', '')
+        #print ("here")
+        #print (fq)
         fq = '{fq} +{q}'.format(fq=fq, q=QUERY).format(s=start_point, e=end_point, sf=START_FIELD, ef=END_FIELD)
         search_params['fq'] = fq
 
@@ -116,11 +120,11 @@ def timeline(context, request_data):
     start = request_data.get('start')
     end = request_data.get('end')
 
-    log.debug("***************timeline")
-    print (context)
-    print (request_data)
-    print (start)
-    print (end)
+    log.debug("***************timeline request_data")
+    #print (context)
+    #print (request_data)
+    #print (start)
+    #print (end)
 
     method = request_data.get('method', 't')
     q = request_data.get('q', '*:*')
@@ -145,7 +149,7 @@ def timeline(context, request_data):
     t_fq = fq.pop([i for i, x in enumerate(fq) if START_FIELD in x or END_FIELD in x or "dataset_type:dataset" in x or "dataset_type:harvest" in x][0])
     t_fq = re.sub(r' +\+{sf}:\[\* TO (\*|\d+)\] AND {ef}:\[(\*|\d+) TO \*\]'.format(sf=START_FIELD, ef=END_FIELD), '', t_fq)
     fq.append(t_fq)
-    print (fq)
+    #print (fq)
     # Handle open/'*' start and end points
     if start == '*':
         try:
@@ -167,16 +171,22 @@ def timeline(context, request_data):
                                 rows=1).results[0][END_FIELD]
         except:
             raise ckan.logic.ValidationError({'end': _('Could not find end value from Solr')})
+    log.debug("***************timeline start end ")
 
     #print ("start: " + start)
     #print ("end: " + end)
     # Convert to ints # does not work this way - Anja
     #start = int(start)
     #end = int(end)
-    #start= datetime.strptime(start, '%Y-%m-%dT%H:%M:%S')
-    #end= datetime.strptime(end, '%Y-%m-%dT%H:%M:%S')
+    #print ("start: " + start)
+    #print ("end: " + end)
+    #start= datetime.strptime(str(start), '%Y-%m-%dT%H:%M:%S')
+    #end= datetime.strptime(str(end), '%Y-%m-%dT%H:%M:%S')
+    #print ("start: " + str(start))
+    #print ("end: " + str(end))
     start= datetime.strptime("1900-03-24T13:35:00", '%Y-%m-%dT%H:%M:%S')
     end= datetime.strptime("3022-03-24T13:35:00", '%Y-%m-%dT%H:%M:%S')
+
     start = (start-datetime(1,1,1)).total_seconds()
     end = (end-datetime(1,1,1)).total_seconds()
 
