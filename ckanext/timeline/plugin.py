@@ -24,13 +24,13 @@ from ckan.common import _, c
 
 log = logging.getLogger(__name__)
 #Anja
-START_FIELD = 'extras_iso_exTempStart'
-END_FIELD = 'extras_iso_exTempEnd'
-START_FIELD_SORT = 'iso_exTempStart'
-END_FIELD_SORT = 'iso_exTempEnd'  # I do not knwo why without extras...
+START_FIELD_EXTRAS = 'extras_iso_exTempStart'
+END_FIELD_EXTRAS = 'extras_iso_exTempEnd'
+START_FIELD = 'iso_exTempStart'
+END_FIELD = 'iso_exTempEnd'  # I do not knwo why without extras...
 #Original
-#START_FIELD = 'metadata_modified'
-#END_FIELD = 'metadata_modified'
+#START_FIELD_EXTRAS = 'metadata_modified'
+#END_FIELD_EXTRAS = 'metadata_modified'
 QUERY = '{sf}:[* TO {e}] AND {ef}:[{s} TO *]'
 RANGES = 10
 
@@ -56,8 +56,7 @@ class TimelinePlugin(plugins.SingletonPlugin):
         Adds start and end point coming from timeline to 'fq'
         '''
         extras = search_params.get('extras')
-        #print ("******************Anja timeline search extras")
-        #print (extras)
+
         if not extras:
             # There are no extras in the search params, so do nothing.
             return search_params
@@ -75,10 +74,12 @@ class TimelinePlugin(plugins.SingletonPlugin):
 
         # Add a time-range query with the selected start and/or end points into the Solr facet queries.
         fq = search_params.get('fq', '')
-        #print ("here")
-        #print (fq)
+
         fq = '{fq} +{q}'.format(fq=fq, q=QUERY).format(s=start_point, e=end_point, sf=START_FIELD, ef=END_FIELD)
         search_params['fq'] = fq
+
+        print ("*************ANja timeline")
+        print (search_params)
 
         return search_params
 
@@ -90,6 +91,10 @@ class TimelinePlugin(plugins.SingletonPlugin):
         c.timeline_q = search_params.get('q', '')
         c.timeline_fq = json.dumps(search_params.get('fq', []))
 
+        print ("*************ANja search_results")
+
+        print (c.timeline_q)
+        print (c.timeline_fq)
         return search_results
 
     def get_actions(self):
@@ -121,10 +126,10 @@ def timeline(context, request_data):
     end = request_data.get('end')
 
     log.debug("***************timeline request_data")
-    #print (context)
+    # (context)
     #print (request_data)
-    #print (start)
-    #print (end)
+    print (start)
+    print (end)
 
     method = request_data.get('method', 't')
     q = request_data.get('q', '*:*')
@@ -138,27 +143,25 @@ def timeline(context, request_data):
     if method not in ('s', 'p', 't'):
         raise ckan.logic.ValidationError({'method': _('Wrong value')})
 
-    # Remove existing timeline parameters from 'fq'
-    #print (fq)
-    #print ("Enumerate")
-    #for i,x in enumerate(fq):
-    #    print (i)
-    #    print (x)
 
+    # Remove existing timeline parameters from 'fq'
     # Anja: dataset_type harvest needed to be added ... not really sure why  we have this type here...
-    t_fq = fq.pop([i for i, x in enumerate(fq) if START_FIELD in x or END_FIELD in x or "dataset_type:dataset" in x or "dataset_type:harvest" in x][0])
-    t_fq = re.sub(r' +\+{sf}:\[\* TO (\*|\d+)\] AND {ef}:\[(\*|\d+) TO \*\]'.format(sf=START_FIELD, ef=END_FIELD), '', t_fq)
+    t_fq = fq.pop([i for i, x in enumerate(fq) if START_FIELD_EXTRAS in x or END_FIELD_EXTRAS in x or "dataset_type:dataset" in x or "dataset_type:harvest" in x][0])
+    t_fq = re.sub(r' +\+{sf}:\[\* TO (\*|\d+)\] AND {ef}:\[(\*|\d+) TO \*\]'.format(sf=START_FIELD_EXTRAS, ef=END_FIELD_EXTRAS), '', t_fq)
     fq.append(t_fq)
-    #print (fq)
+
+    print ("************** ANJA fq")
+    print (fq)
+
     # Handle open/'*' start and end points
     if start == '*':
         try:
             with closing(ckan.lib.search.make_connection()) as con:
                 start = con.query(q,
                                   fq=fq + ['{f}:[* TO *]'.format(f=START_FIELD)],
-                                  fields=['id', '{f}'.format(f=START_FIELD)],
-                                  sort=['{f} asc'.format(f=START_FIELD_SORT)],
-                                  rows=1).results[0][START_FIELD]
+                                  fields=['id', '{f}'.format(f=START_FIELD_EXTRAS)],
+                                  sort=['{f} asc'.format(f=START_FIELD)],
+                                  rows=1).results[0][START_FIELD_EXTRAS]
         except:
             raise ckan.logic.ValidationError({'start': _('Could not find start value from Solr')})
     if end == '*':
@@ -166,29 +169,22 @@ def timeline(context, request_data):
             with closing(ckan.lib.search.make_connection()) as con:
                 end = con.query(q,
                                 fq=fq + ['{f}:[* TO *]'.format(f=END_FIELD)],
-                                fields=['id', '{f}'.format(f=END_FIELD)],
-                                sort=['{f} desc'.format(f=END_FIELD_SORT)],
-                                rows=1).results[0][END_FIELD]
+                                fields=['id', '{f}'.format(f=END_FIELD_EXTRAS)],
+                                sort=['{f} desc'.format(f=END_FIELD)],
+                                rows=1).results[0][END_FIELD_EXTRAS]
         except:
             raise ckan.logic.ValidationError({'end': _('Could not find end value from Solr')})
-    log.debug("***************timeline start end ")
 
-    #print ("start: " + start)
-    #print ("end: " + end)
-    # Convert to ints # does not work this way - Anja
-    #start = int(start)
-    #end = int(end)
-    #print ("start: " + start)
-    #print ("end: " + end)
-    #start= datetime.strptime(str(start), '%Y-%m-%dT%H:%M:%S')
-    #end= datetime.strptime(str(end), '%Y-%m-%dT%H:%M:%S')
-    #print ("start: " + str(start))
-    #print ("end: " + str(end))
-    start= datetime.strptime("1900-03-24T13:35:00", '%Y-%m-%dT%H:%M:%S')
-    end= datetime.strptime("3022-03-24T13:35:00", '%Y-%m-%dT%H:%M:%S')
-
-    start = (start-datetime(1,1,1)).total_seconds()
-    end = (end-datetime(1,1,1)).total_seconds()
+    # Simple Convert to ints # does not work this way - Anja; because initially it might be stars * ...
+    try:
+        start = int(start)
+        end = int(end)
+    except:
+        start= datetime.strptime(str(start), '%Y-%m-%dT%H:%M:%S')
+        end= datetime.strptime(str(end), '%Y-%m-%dT%H:%M:%S')
+        start = (start-datetime(1,1,1)).total_seconds()
+        end = (end-datetime(1,1,1)).total_seconds()
+        pass
 
     # Verify 'end' larger than 'start'
     if end <= start:
@@ -221,6 +217,8 @@ def timeline(context, request_data):
 
     # Convert 'ls' to a list, because of JSON
     ls = list(ls)
+    print ("************** fq before new request")
+    print (fq)
 
     # Make requests
     if method == 't':
@@ -249,7 +247,7 @@ def ps(t):
     s, e, m, q, fq = t
     with closing(ckan.lib.search.make_connection()) as solr:
         n = solr.query(q,
-                       fq=fq + ['{0}'.format(QUERY.format(s=s, e=e, sf=START_FIELD, ef=END_FIELD))],
+                       fq=fq + ['{0}'.format(QUERY.format(s=s, e=e, sf=START_FIELD_EXTRAS, ef=END_FIELD_EXTRAS))],
                        fields=['id'],
                        rows=0)
     found = int(n._numFound)
